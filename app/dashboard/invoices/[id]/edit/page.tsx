@@ -3,6 +3,7 @@ import Breadcrumbs from '@/app/ui/invoices/breadcrumbs'
 import { fetchCustomers, fetchInvoiceById } from '@/app/lib/data'
 import { Customer, Invoice } from '../../../../lib/definitions'
 import { updateInvoice } from '../../../../lib/actions'
+import { notFound } from 'next/navigation'
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
@@ -12,6 +13,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     fetchInvoiceById(id),
     fetchCustomers()
   ])
+
+  if (!invoice) {
+    notFound()
+  }
+
   const updateInvoiceWithId = updateInvoice.bind(null, invoice.id)
   return (
     <main>
