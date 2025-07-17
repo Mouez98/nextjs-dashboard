@@ -103,15 +103,18 @@ async function seedRevenue() {
 
 export async function GET() {
   try {
-    const result = await sql.begin((sql) => [
-      seedUsers(),
-      seedCustomers(),
-      seedInvoices(),
-      seedRevenue(),
-    ]);
+    // This is incorrect usage of sql.begin() - it should be passed the queries directly
+    // rather than an array of promises that are already using the outer sql connection
+    const result = await sql.begin(async (sql) => {
+      await seedUsers();
+      await seedCustomers();
+      await seedInvoices();
+      await seedRevenue();
+    });
 
     return Response.json({ message: 'Database seeded successfully' });
   } catch (error) {
+    console.error(error);
     return Response.json({ error }, { status: 500 });
   }
 }

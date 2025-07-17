@@ -1,24 +1,28 @@
-'use client';
+'use-client'
 
-import { CustomerField, InvoiceForm } from '@/app/lib/definitions';
+import { CustomerField, InvoiceForm } from '@/app/lib/definitions'
 import {
   CheckIcon,
   ClockIcon,
   CurrencyDollarIcon,
-  UserCircleIcon,
-} from '@heroicons/react/24/outline';
-import Link from 'next/link';
-import { Button } from '@/app/ui/button';
+  UserCircleIcon
+} from '@heroicons/react/24/outline'
+import Link from 'next/link'
+import { Button } from '@/app/ui/button'
+import { UpdateInvoice } from './buttons'
+import { updateInvoice } from '../../lib/actions'
 
 export default function EditInvoiceForm({
   invoice,
   customers,
+  updateInvoiceWithId
 }: {
-  invoice: InvoiceForm;
-  customers: CustomerField[];
+  invoice: InvoiceForm
+  customers: CustomerField[]
+  updateInvoiceWithId: (formData: FormData) => Promise<void>
 }) {
   return (
-    <form>
+    <form action={updateInvoiceWithId}>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
         {/* Customer Name */}
         <div className="mb-4">
@@ -119,5 +123,5 @@ export default function EditInvoiceForm({
         <Button type="submit">Edit Invoice</Button>
       </div>
     </form>
-  );
+  )
 }
