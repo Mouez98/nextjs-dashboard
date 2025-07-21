@@ -1,11 +1,14 @@
 import Form from '@/app/ui/invoices/edit-form'
+
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs'
 import { fetchCustomers, fetchInvoiceById } from '@/app/lib/data'
-import { Customer, Invoice } from '../../../../lib/definitions'
-import { updateInvoice } from '../../../../lib/actions'
+
 import { notFound } from 'next/navigation'
 
-export default async function Page(props: { params: Promise<{ id: string }> }) {
+export default async function Page(props: {
+  params: Promise<{ id: string }>
+  formUpdateInvoice: (id: string, data: FormData) => Promise<void>
+}) {
   const params = await props.params
   const id = params.id
 
@@ -18,7 +21,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     notFound()
   }
 
-  const updateInvoiceWithId = updateInvoice.bind(null, invoice.id)
   return (
     <main>
       <Breadcrumbs
@@ -31,11 +33,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           }
         ]}
       />
-      <Form
-        invoice={invoice}
-        customers={customers}
-        updateInvoiceWithId={updateInvoiceWithId}
-      />
+      <Form invoice={invoice} customers={customers} />
     </main>
   )
 }

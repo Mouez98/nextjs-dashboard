@@ -1,3 +1,5 @@
+'use server'
+
 import { z } from 'zod'
 
 import postgres from 'postgres'
@@ -8,23 +10,44 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' })
 
 const FormSchema = z.object({
   id: z.string(),
-  customerId: z.string(),
-  amount: z.coerce.number(),
-  status: z.enum(['pending', 'paid']),
+  customerId: z.string({
+    invalid_type_error: 'Please select a customer'
+  }),
+  amount: z.coerce.number().gt(0, 'Please enter an amount greater than $0'),
+  status: z.enum(['pending', 'paid'], {
+    invalid_type_error: 'Please select a status'
+  }),
   date: z.string()
 })
+
+export type State = {
+  errors?: {
+    customerId?: string[]
+    amount?: string[]
+    status?: string[]
+  }
+  message?: string | null
+}
 
 const CreateInvoice = FormSchema.omit({ id: true, date: true })
 const UpdateInvoice = FormSchema.omit({ id: true, date: true })
 
-export async function createInvoice(formData: FormData) {
-  'use server'
+export async function createInvoice(prevState: State, formData: FormData) {
   const rowFormData = {
     customerId: formData.get('customerId'),
     status: formData.get('status'),
     amount: formData.get('amount')
   }
-  const { amount, customerId, status } = CreateInvoice.parse(rowFormData)
+  const validatedFields = CreateInvoice.safeParse(rowFormData)
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Failed to create invoice, missing fields'
+    }
+  }
+
+  const { customerId, amount, status } = validatedFields.data
 
   const amountInCents = amount * 100
   const date = new Date().toISOString().split('T')[0]
@@ -34,19 +57,32 @@ export async function createInvoice(formData: FormData) {
           values(${amountInCents}, ${customerId}, ${date}, ${status})
       `
   } catch (error) {
-    console.error(error)
+    return {
+      message: 'Database Error, Failed to Create Invoice. '
+    }
   }
   revalidatePath('/dashboard/invoices')
   redirect('/dashboard/invoices')
 }
-export async function updateInvoice(id: string, formData: FormData) {
-  'use server'
+export async function updateInvoice(
+  id: string,
+  prevState: State,
+  formData: FormData
+) {
   const rowFormData = {
     customerId: formData.get('customerId'),
     status: formData.get('status'),
     amount: formData.get('amount')
   }
-  const { amount, customerId, status } = UpdateInvoice.parse(rowFormData)
+  const { data, success, error } = UpdateInvoice.safeParse(rowFormData)
+
+  if (!success) {
+    return {
+      errors: error.flatten().fieldErrors,
+      message: 'Failed to update invoice, missing fields'
+    }
+  }
+  const { amount, customerId, status } = data
 
   const amountInCents = amount * 100
 
@@ -56,16 +92,15 @@ export async function updateInvoice(id: string, formData: FormData) {
           where id = ${id}
           `
   } catch (error) {
-    console.error(error)
+    return {
+      message: 'Server error, Failed to update invoice'
+    }
   }
   revalidatePath('/dashboard/invoices')
   redirect('/dashboard/invoices')
 }
 
 export async function deleteInvoice(id: string) {
-  'use server'
-  throw new Error('Failed to delete invoice')
-
   await sql`delete from invoices where id = ${id}`
   revalidatePath('/dashboard/invoices')
 }
